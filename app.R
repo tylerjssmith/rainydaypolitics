@@ -112,7 +112,7 @@ make_leaflet = function(df, input) {
 
   values   = round(with(df, get( input$value )), 1)
   symbol   = ifelse(input$value == 'vote_percent', '%', 'votes')
-  palette  = colorNumeric('magma', values)
+  palette  = colorNumeric('magma', values, na.color = "transparent")
   lastname = word(input$candidate, -1)
   
   map = make_base_leaflet() %>%
@@ -137,7 +137,8 @@ make_leaflet = function(df, input) {
     addLegend(
       pal = palette,
       values = values,
-      title = paste0(lastname, ' (', symbol, ')')
+      title = paste0(lastname, ' (', symbol, ')'),
+      na.label = NA
     )
 
   return(map)
@@ -208,6 +209,14 @@ sidebar = dashboardSidebar(
         inputId = 'run',
         label = 'Run'
       )
+    ),
+
+    menuItem("Source Code", icon = icon("github"),
+      href = "https://github.com/tylerjssmith/rainydaypolitics"
+    ),
+
+    menuItem("Contact", icon = icon("envelope"),
+      href = "mailto:rainydaypoliticswebsite@gmail.com"
     )
   )
 )
