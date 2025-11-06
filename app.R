@@ -31,7 +31,7 @@ create_pool = function(config_file) {
     password = config$password,
     
     minSize     = 3,
-    maxSize     = Inf, 
+    maxSize     = 20, 
     idleTimeout = 300000 # 300000 ms = 5 minutes
   )
   
@@ -47,28 +47,30 @@ onStop(function() {
 })
 
 # Function: query_data()
-query_data = function(input, dsn = pool, 
+query_data = function(inps, dsn = pool, 
   query_file = 'sql/query_results.sql') {    
 
-  input_list = list(
-    year         = input$year,
-    election     = input$election,
-    jurisdiction = input$jurisdiction,
-    position     = input$position,
-    candidate    = input$candidate
-  )
+  stopifnot(is.list(inps), !is.null(inps$year))
 
   geometry_table = ifelse(
-    input$year < 2022, 
+    as.integer(inps$year) < 2022, 
     'precinct_geometry_2016',
     'precinct_geometry_2022'
   )
 
   query_text = read_file(query_file)
   query_text = gsub('\\?geometry_table', geometry_table, query_text)
-  query_text = sqlInterpolate(dsn, query_text, .dots = input_list)
+  query_text = sqlInterpolate(dsn, query_text, 
+    .dots = list(
+      year         = inps$year,
+      election     = inps$election,
+      jurisdiction = inps$jurisdiction,
+      position     = inps$position,
+      candidate    = inps$candidate
+    )
+  )
 
-  st_read(
+ sf:: st_read(
     dsn   = dsn, 
     query = query_text,
     quiet = TRUE
@@ -164,8 +166,8 @@ sidebar = dashboardSidebar(
       selectInput(
         inputId = 'year',
         label = 'Year',
-        choices = paste0(c('', sort(unique(ui_options$year)))),
-        selected = '',
+        choices = sort(unique(ui_options$year)),
+        selected = min(ui_options$year)
       ),
       
       selectInput(
@@ -235,7 +237,13 @@ body = dashboardBody(
 ui = dashboardPage(header, sidebar, body)
 
 ##### app_server.R #############################################################
-server = function(input, output) { 
+server = function(input, output, session) { 
+  # Start with Base Map
+  data = reactiveValues(
+    
+    map = make_base_leaflet()
+    
+  )
 
   # Reactive Input
   # (For year, filter and get elections.)
@@ -245,7 +253,7 @@ server = function(input, output) {
   
   observeEvent(year(), {
     choices = sort(unique(year()$election))
-    updateSelectInput(inputId = 'election', choices = choices)
+    updateSelectInput(session, inputId = 'election', choices = choices)
   })  
 
   # (For election, filter and get jurisdictions)
@@ -255,7 +263,7 @@ server = function(input, output) {
   
   observeEvent(election(), {
     choices = sort(unique(election()$jurisdiction))
-    updateSelectInput(inputId = 'jurisdiction', choices = choices)
+    updateSelectInput(session, inputId = 'jurisdiction', choices = choices)
   })
 
   # (For jurisdiction, filter and get positions.)
@@ -265,7 +273,7 @@ server = function(input, output) {
   
   observeEvent(jurisdiction(), {
     choices = sort(unique(jurisdiction()$position))
-    updateSelectInput(inputId = 'position', choices = choices)
+    updateSelectInput(session, inputId = 'position', choices = choices)
   })
 
   # (For position, filter and get candidates.)
@@ -275,32 +283,47 @@ server = function(input, output) {
   
   observeEvent(position(), {
     choices = sort(unique(position()$candidate))
-    updateSelectInput(inputId = 'candidate', choices = choices)
+    updateSelectInput(session, inputId = 'candidate', choices = choices)
   })
 
   # (For candidate, filter.)
   candidate = reactive({
     position() %>% filter(candidate == input$candidate)
   })
-
-  # Start with Base Map
-  data = reactiveValues(
-    
-    map = make_base_leaflet()
-    
-  )
   
+  # Input Validation
+  valid_inputs <- reactive({
+    req(input$year,         nzchar(as.character(input$year)))
+    req(input$election,     nzchar(input$election))
+    req(input$jurisdiction, nzchar(input$jurisdiction))
+    req(input$position,     nzchar(input$position))
+    req(input$candidate,    nzchar(input$candidate))
+    req(input$value,        nzchar(input$value))
+
+    list(
+      year         = as.integer(input$year),
+      election     = input$election,
+      jurisdiction = input$jurisdiction,
+      position     = input$position,
+      candidate    = input$candidate,
+      value        = input$value
+    )
+    
+  })
+
   # Call: query_data()
   df = eventReactive(input$run, {
 
-    query_data(input = input)    
+    inps = valid_inputs()
+    validate(need(!is.na(inps$year), 'Pick a year'))
+    query_data(inps = inps)    
 
   })
 
   # Call: make_leaflet
   observeEvent(input$run, {
     
-    data$map = make_leaflet(df = df(), input = input)
+    data$map = make_leaflet(df = df(), input = valid_inputs())
     
   })
 
