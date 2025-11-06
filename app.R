@@ -20,7 +20,6 @@ ui_options = read_csv("data/ui_options.csv")
 ##### app_functions.R ##########################################################
 # Function: create_pool()
 create_pool = function(config_file) {
-  
   config = config::get(file = config_file)
   
   pool = dbPool(
@@ -76,19 +75,14 @@ query_data = function(input, dsn = pool,
   )
 }
 
-# Function: make_leaflet()
-make_leaflet = function(df, input, zoom = 11, minZoom = 9, bound = 1) {
-
-  view = tibble(lng = -122.335167, lat = 47.608013)
-
-  values = round(with(df, get( input$value )), 1)
-  symbol = ifelse(input$value == 'vote_percent', '%', 'votes')
-
-  options  = leafletOptions(minZoom = minZoom)
-  bound    = bound
-  palette  = colorNumeric('magma', values)
-  lastname = word(input$candidate, -1)
-
+# Function: make_base_leaflet()
+make_base_leaflet = function(zoom = 11, minZoom = 9, 
+  lng = -122.335167, lat = 47.608013, bound = 1.5) {
+  
+  view    = tibble(lng = lng, lat = lat)
+  options = leafletOptions(minZoom = minZoom)
+  bound   = bound
+  
   map = leaflet(options = options) %>%
     
     addProviderTiles(
@@ -103,12 +97,25 @@ make_leaflet = function(df, input, zoom = 11, minZoom = 9, bound = 1) {
     
     setMaxBounds(
       lng1 = view$lng + bound,
-      lat1 = view$lat + bound,
-      lng2 = view$lng - bound,
-      lat2 = view$lat - bound
-      )
+      lat1 = view$lat + bound/2,
+      lng2 = view$lng - bound/2,
+      lat2 = view$lat - bound/2
+      ) %>%
+    
+    leaflet.extras::addResetMapButton()
   
-  map = map %>%
+  return(map)
+}
+
+# Function: make_leaflet()
+make_leaflet = function(df, input) {
+
+  values   = round(with(df, get( input$value )), 1)
+  symbol   = ifelse(input$value == 'vote_percent', '%', 'votes')
+  palette  = colorNumeric('magma', values)
+  lastname = word(input$candidate, -1)
+  
+  map = make_base_leaflet() %>%
     addPolygons(
       data = df, 
       
@@ -131,9 +138,7 @@ make_leaflet = function(df, input, zoom = 11, minZoom = 9, bound = 1) {
       pal = palette,
       values = values,
       title = paste0(lastname, ' (', symbol, ')')
-    ) %>%
-    
-    leaflet.extras::addResetMapButton()
+    )
 
   return(map)
 }
@@ -269,6 +274,13 @@ server = function(input, output) {
     position() %>% filter(candidate == input$candidate)
   })
 
+  # Start with Base Map
+  data = reactiveValues(
+    
+    map = make_base_leaflet()
+    
+  )
+  
   # Call: query_data()
   df = eventReactive(input$run, {
 
@@ -277,11 +289,9 @@ server = function(input, output) {
   })
 
   # Call: make_leaflet
-  data <- reactiveValues()
-
   observeEvent(input$run, {
     
-    data$map <- make_leaflet(df = df(), input = input)
+    data$map = make_leaflet(df = df(), input = input)
     
   })
 
