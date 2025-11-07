@@ -14,8 +14,7 @@ library(leaflet.extras)
 
 # Also requires config package, which is not loaded to avoid conflicts.
 
-#setwd("/srv/shiny-server/rainydaypolitics")
-setwd("~/Desktop/rainydaypolitics/")
+setwd("/srv/shiny-server/rainydaypolitics")
 ui_options = read_csv("data/ui_options.csv")
 
 ##### app_functions.R ##########################################################
@@ -39,7 +38,7 @@ create_pool = function(config_file) {
   return(pool)
 }
 
-pool = create_pool(config_file = "config_dev.yml")
+pool = create_pool(config_file = "config_app.yml")
 
 onStop(function() {
   
