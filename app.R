@@ -14,7 +14,8 @@ library(leaflet.extras)
 
 # Also requires config package, which is not loaded to avoid conflicts.
 
-setwd("/srv/shiny-server/rainydaypolitics")
+#setwd("/srv/shiny-server/rainydaypolitics")
+setwd("~/Desktop/rainydaypolitics/")
 ui_options = read_csv("data/ui_options.csv")
 
 ##### app_functions.R ##########################################################
@@ -38,7 +39,7 @@ create_pool = function(config_file) {
   return(pool)
 }
 
-pool = create_pool(config_file = "config_app.yml")
+pool = create_pool(config_file = "config_dev.yml")
 
 onStop(function() {
   
@@ -112,26 +113,31 @@ make_base_leaflet = function(zoom = 11, minZoom = 9,
 # Function: make_leaflet()
 make_leaflet = function(df, input) {
 
+  # (To be implemented in database.)
+  df = df %>%
+    mutate(vote_percent = ifelse(vote_count == 0, 0, vote_percent))
+  
   values   = round(with(df, get( input$value )), 1)
   symbol   = ifelse(input$value == 'vote_percent', '%', 'votes')
   palette  = colorNumeric('magma', values, na.color = "transparent")
   lastname = word(input$candidate, -1)
   
+  bb = as.numeric(sf::st_bbox(df))
+  
   map = make_base_leaflet() %>%
+    
     addPolygons(
-      data = df, 
-      
-      fillColor = ~palette(values), 
+      data        = df, 
+      fillColor   = ~palette(values), 
       fillOpacity = 0.8,
-      
-      color = 'black',
-      weight = 1,
+      color       = 'black',
+      weight      = 1,
       
       popup = ~paste0('<b>', precinct, '</b><br/>', 
         lastname, ': ', values, ' ', symbol),
       
       highlight = highlightOptions(
-        weight = 3, 
+        weight       = 3, 
         bringToFront = TRUE
       )
     ) %>%
@@ -141,6 +147,13 @@ make_leaflet = function(df, input) {
       values = values,
       title = paste0(lastname, ' (', symbol, ')'),
       na.label = NA
+    )  %>%
+    
+    fitBounds(
+      lng1 = bb[1],
+      lat1 = bb[2],
+      lng2 = bb[3],
+      lat2 = bb[4]
     )
 
   return(map)
@@ -213,10 +226,14 @@ sidebar = dashboardSidebar(
       )
     ),
 
+    menuItem("Documentation", icon = icon("book"),
+      href = "https://github.com/tylerjssmith/rainydaypolitics"
+    ),
+    
     menuItem("Source Code", icon = icon("github"),
       href = "https://github.com/tylerjssmith/rainydaypolitics"
     ),
-
+    
     menuItem("Contact", icon = icon("envelope"),
       href = "mailto:rainydaypoliticswebsite@gmail.com"
     )
@@ -256,7 +273,7 @@ server = function(input, output, session) {
     updateSelectInput(session, inputId = 'election', choices = choices)
   })  
 
-  # (For election, filter and get jurisdictions)
+  # (For election, filter and get jurisdictions.)
   election = reactive({
     year() %>% filter(election == input$election)
   })
@@ -286,12 +303,12 @@ server = function(input, output, session) {
     updateSelectInput(session, inputId = 'candidate', choices = choices)
   })
 
-  # (For candidate, filter.)
+  # (Get candidates.)
   candidate = reactive({
     position() %>% filter(candidate == input$candidate)
   })
   
-  # Input Validation
+  # Validate Input
   valid_inputs <- reactive({
     req(input$year,         nzchar(as.character(input$year)))
     req(input$election,     nzchar(input$election))
@@ -314,15 +331,13 @@ server = function(input, output, session) {
   # Call: query_data()
   df = eventReactive(input$run, {
 
-    inps = valid_inputs()
-    validate(need(!is.na(inps$year), 'Pick a year'))
-    query_data(inps = inps)    
+    query_data(inps = valid_inputs())    
 
   })
 
   # Call: make_leaflet
   observeEvent(input$run, {
-    
+
     data$map = make_leaflet(df = df(), input = valid_inputs())
     
   })
