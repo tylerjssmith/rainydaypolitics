@@ -1,2 +1,5 @@
-# rainydaypolitics
-www.rainydaypolitics.com
+# Rainy Day Politics
+
+Rainy Day Politics ([www.rainydaypolitics.com](www.rainydaypolitics.com)) is a no-code political analytics platform focused on Seattle and King County. Users can generate maps of precinct-level election results in recent local elections. Select year, election, jurisdiction, position, candidate, and value (percentage or number of votes), then click the Run button. Use controls in the upper left of the map to pan, zoom, or reset the map. Hover over a precinct to see the value for the precinct. Links at the bottom of the left sidebar include documentation, source code, and contact information.
+
+All data, including [election results](https://kingcounty.gov/en/dept/elections/results) and [precinct geometries](https://kingcounty.gov/en/dept/elections/maps/precinct-and-district-data), were obtained from King County Elections.
