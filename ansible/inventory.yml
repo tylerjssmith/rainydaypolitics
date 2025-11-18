@@ -2,6 +2,6 @@
 all:
   hosts:
     webserver:
-      ansible_host: "{{ web_server_eip }}"
-      ansible_user: "{{ ansible_user }}"
-      ansible_ssh_private_key_file: "{{ web_server_key }}"
+      ansible_host: localhost
+      ansible_connection: local
+      ansible_user: ubuntu
