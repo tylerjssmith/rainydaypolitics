@@ -42,6 +42,10 @@
       ClientAliveCountMax 2
       LoginGraceTime 30s
       MaxAuthTries 3
-      AllowUsers "{{ ansible_user }}"
+      LogLevel VERBOSE
+      HostbasedAuthentication no
+      IgnoreRhosts yes
+      PermitEmptyPasswords no
+      PermitUserEnvironment no
   notify: "validate and reload sshd"
   

@@ -1,50 +1,56 @@
 ---
 # Install UFW
 - name: Install UFW
+  become: true
   ansible.builtin.apt:
     name: ufw
     state: present
     update_cache: yes
 
 # Set Defaults
-- name: Deny incoming
+- name: Deny incoming by default
+  become: true
   community.general.ufw:
     direction: incoming
     policy: deny
 
-- name: Allow outgoing
+- name: Allow outgoing by default
+  become: true
   community.general.ufw:
     direction: outgoing
     policy: allow
 
 # Set Rules
-- name: HTTP
+- name: Allow HTTP
+  become: true
   community.general.ufw:
     rule: allow
     port: 80
     proto: tcp
-    log: true
 
-- name: HTTPS
+- name: Allow HTTPS
+  become: true
   community.general.ufw:
     rule: allow
     port: 443
     proto: tcp
-    log: true
 
-- name: SSH
+- name: Limit SSH
+  become: true
   community.general.ufw:
-    rule: allow
+    rule: limit
     port: 22
     proto: tcp
     log: true
 
 # Enable Logging
 - name: Enable UFW logging
+  become: true
   community.general.ufw:
     logging: 'medium'
 
 # Enable at Boot
 - name: Enable UFW
+  become: true
   community.general.ufw:
     state: enabled

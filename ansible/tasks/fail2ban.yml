@@ -15,11 +15,15 @@
     mode: "0644"
     content: |
       [sshd]
-      enabled = true
-      port    = 22
-      filter  = sshd
-      logpath = /var/log/auth.log
-      bantime = 1h
+      enabled  = true
+      port     = 22
+      filter   = sshd
+      backend  = systemd
+      logpath  = /var/log/auth.log
       findtime = 10m
       maxretry = 5
+      bantime  = 1h
+      bantime.increment = true
+      bantime.factor    = 4
+      bantime.maxtime   = 24h
   notify: "restart fail2ban"

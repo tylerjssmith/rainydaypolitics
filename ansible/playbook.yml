@@ -24,17 +24,19 @@
       import_tasks: tasks/clamav_web.yml
 
   handlers:
-    - name: Validate sshd config
+    - name: validate and reload sshd
       become: true
-      ansible.builtin.command: "sshd -t -f /etc/ssh/sshd_config"
-      listen: "validate and reload sshd"
+      ansible.builtin.shell: sshd -t
+      register: sshd_check
+      changed_when: false
+      failed_when: sshd_check.rc != 0
 
-    - name: Reload sshd
+    - name: reload sshd
       become: true
       ansible.builtin.service:
         name: ssh
         state: reloaded
-      listen: "validate and reload sshd"
+      when: sshd_check.rc == 0
 
     - name: Restart fail2ban
       become: true

@@ -1,6 +1,6 @@
 ---
 # Install ClamAV
-- name: Install clamav packages
+- name: Install ClamAV
   become: true
   ansible.builtin.apt:
     name:
@@ -10,7 +10,7 @@
     update_cache: yes
 
 # Ensure Directories Exist
-- name: Ensure database directory exists
+- name: Ensure ClamAV database directory exists
   become: true
   ansible.builtin.file:
     path: /var/lib/clamav
@@ -19,7 +19,7 @@
     group: clamav
     mode: '0755'
 
-- name: Ensure quarantine directory exists
+- name: Ensure ClamAV quarantine directory exists
   become: true
   ansible.builtin.file:
     path: /quarantine/clamav
@@ -28,7 +28,7 @@
     group: root
     mode: '0700'
 
-- name: Ensure log directory exists
+- name: Ensure ClamAV log directory exists
   become: true
   ansible.builtin.file:
     path: /var/log/clamav
@@ -37,55 +37,60 @@
     group: adm
     mode: '0750'
 
-# Schedule Scans
-- name: Schedule daily scan
+# Schedule Weekly Scan
+- name: Disable cron mail for ClamAV scan
   become: true
   ansible.builtin.cron:
-    name: "daily ClamAV scan of /var/www"
+    name: MAILTO
     user: root
-    minute: "0"
-    hour: "2"
-    job: "/usr/bin/ionice -c3 \
-          /usr/bin/nice -n19 \
-          /usr/bin/clamdscan --fdpass --multiscan -r /var/www \
-          --infected \
-          --move=/quarantine/clamav \
-          --log=/var/log/clamav/web_scan.log \
-          --summary \
-          --exclude-dir='^/quarantine'"
+    cron_file: clamav_scan
+    env: true
+    job: ""
 
-- name: schedule weekly scan
+- name: Schedule weekly ClamAV scan
   become: true
   ansible.builtin.cron:
-    name: "weekly ClamAV scan of /tmp,/var/tmp,/home"
+    name: "weekly ClamAV scan"
     user: root
     minute: "0"
     hour: "3"
     weekday: "0"
-    job: "/usr/bin/ionice -c3 \
-          /usr/bin/nice -n19 \
-          /usr/bin/clamdscan --fdpass --multiscan -r /tmp /var/tmp /home \
-          --infected --move=/quarantine/clamav \
-          --log=/var/log/clamav/temp_scan.log \
-          --summary \
-          --exclude-dir='^/quarantine' \
-          --exclude-dir='^/proc' \
-          --exclude-dir='^/sys' \
-          --exclude-dir='^/dev' \
-          --exclude-dir='^/run' \
-          --exclude-dir='^/snap' \
-          --exclude-dir='^/var/lib/docker' \
-          --exclude-dir='^/var/lib/containerd'"
+    cron_file: clamav_scan
+    env:
+      MAILTO: ""
+    job: >
+      /usr/bin/ionice -c3
+      /usr/bin/nice -n19
+      /usr/bin/clamdscan
+      --fdpass
+      --multiscan
+      --recursive
+      --infected
+      --move=/quarantine/clamav
+      --log=/var/log/clamav/scan.log
+      --summary
+      --max-scantime=3600
+      --exclude-dir='^/quarantine'
+      --exclude-dir='^/proc'
+      --exclude-dir='^/sys'
+      --exclude-dir='^/dev'
+      --exclude-dir='^/run'
+      --exclude-dir='^/snap'
+      --exclude-dir='^/var/cache'
+      --exclude-dir='^/var/log'
+      --exclude-dir='^/var/lib/docker'
+      --exclude-dir='^/var/lib/containerd'
+      -r /var/www /srv/shiny-server /tmp /var/tmp /home
 
 # Start and Enable
-- name: start and enable freshclam services
+- name: Start and enable freshclam services
   become: true
   ansible.builtin.service:
     name: clamav-freshclam
     state: started
     enabled: true
 
-- name: start and enable clamav daemon
+- name: Start and enable clamav daemon
   become: true
   ansible.builtin.service:
     name: clamav-daemon

@@ -32,9 +32,8 @@
   become: true
   ansible.builtin.command:
     cmd: >
-      Rscript -e "pkgs = c('tidyverse','shiny','shinydashboard','paws',
-      'jsonlite','DBI','pool','RPostgres','sf','leaflet',
-      'leaflet.extras','config');
+      Rscript -e "pkgs = c('tidyverse','shiny','shinydashboard','jsonlite',
+      'DBI','pool','RPostgres','sf','leaflet','leaflet.extras');
       to_install = setdiff(pkgs, rownames(installed.packages()));
       if (length(to_install)) install.packages(to_install,
         repos='https://cloud.r-project.org')"
