@@ -1,6 +1,6 @@
 # Rainy Day Politics
 
-Rainy Day Politics ([www.rainydaypolitics.com](www.rainydaypolitics.com)) is a no-code political analytics platform focused on Seattle and King County. Users can generate maps of precinct-level election results in recent local elections. 
+Rainy Day Politics ([www.rainydaypolitics.com](www.rainydaypolitics.com)) is a no-code political analytics platform focused on Seattle and King County. Users can generate maps of precinct-level election results in recent local elections. This repository includes `app.R` and associated files in `data/` and `sql/` as well as infrastructure-as-code files in `terraform/` and `ansible/` used to create the underlying AWS infrastructure. Files containing inputs to Terraform and Ansible have been withheld for security reasons.
 
 ## Getting Started
 
