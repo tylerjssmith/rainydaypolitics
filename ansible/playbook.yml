@@ -1,0 +1,45 @@
+---
+- name: Configure Web Server
+  hosts: webserver
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Harden OpenSSH
+      import_tasks: tasks/openssh.yml
+
+    - name: Add Fail2Ban
+      import_tasks: tasks/fail2ban.yml
+
+    - name: Configure Automatic Updates
+      import_tasks: tasks/unattended-upgrades.yml
+
+    - name: Accept SSH, HTTP, and HTTPS
+      import_tasks: tasks/ufw_web.yml
+
+    - name: Install NGINX, Certbot, and Shiny Server
+      import_tasks: tasks/nginx_certbot_shiny.yml
+      
+    - name: Install and Configure ClamAV
+      import_tasks: tasks/clamav_web.yml
+
+  handlers:
+    - name: Validate sshd config
+      become: true
+      ansible.builtin.command: "sshd -t -f /etc/ssh/sshd_config"
+      listen: "validate and reload sshd"
+
+    - name: Reload sshd
+      become: true
+      ansible.builtin.service:
+        name: ssh
+        state: reloaded
+      listen: "validate and reload sshd"
+
+    - name: Restart fail2ban
+      become: true
+      ansible.builtin.service:
+        name: fail2ban
+        state: restarted
+        enabled: true
+      listen: "restart fail2ban"

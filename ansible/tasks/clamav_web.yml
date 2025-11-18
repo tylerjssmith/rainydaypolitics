@@ -1,0 +1,93 @@
+---
+# Install ClamAV
+- name: Install clamav packages
+  become: true
+  ansible.builtin.apt:
+    name:
+      - clamav
+      - clamav-daemon
+    state: present
+    update_cache: yes
+
+# Ensure Directories Exist
+- name: Ensure database directory exists
+  become: true
+  ansible.builtin.file:
+    path: /var/lib/clamav
+    state: directory
+    owner: clamav
+    group: clamav
+    mode: '0755'
+
+- name: Ensure quarantine directory exists
+  become: true
+  ansible.builtin.file:
+    path: /quarantine/clamav
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Ensure log directory exists
+  become: true
+  ansible.builtin.file:
+    path: /var/log/clamav
+    state: directory
+    owner: clamav
+    group: adm
+    mode: '0750'
+
+# Schedule Scans
+- name: Schedule daily scan
+  become: true
+  ansible.builtin.cron:
+    name: "daily ClamAV scan of /var/www"
+    user: root
+    minute: "0"
+    hour: "2"
+    job: "/usr/bin/ionice -c3 \
+          /usr/bin/nice -n19 \
+          /usr/bin/clamdscan --fdpass --multiscan -r /var/www \
+          --infected \
+          --move=/quarantine/clamav \
+          --log=/var/log/clamav/web_scan.log \
+          --summary \
+          --exclude-dir='^/quarantine'"
+
+- name: schedule weekly scan
+  become: true
+  ansible.builtin.cron:
+    name: "weekly ClamAV scan of /tmp,/var/tmp,/home"
+    user: root
+    minute: "0"
+    hour: "3"
+    weekday: "0"
+    job: "/usr/bin/ionice -c3 \
+          /usr/bin/nice -n19 \
+          /usr/bin/clamdscan --fdpass --multiscan -r /tmp /var/tmp /home \
+          --infected --move=/quarantine/clamav \
+          --log=/var/log/clamav/temp_scan.log \
+          --summary \
+          --exclude-dir='^/quarantine' \
+          --exclude-dir='^/proc' \
+          --exclude-dir='^/sys' \
+          --exclude-dir='^/dev' \
+          --exclude-dir='^/run' \
+          --exclude-dir='^/snap' \
+          --exclude-dir='^/var/lib/docker' \
+          --exclude-dir='^/var/lib/containerd'"
+
+# Start and Enable
+- name: start and enable freshclam services
+  become: true
+  ansible.builtin.service:
+    name: clamav-freshclam
+    state: started
+    enabled: true
+
+- name: start and enable clamav daemon
+  become: true
+  ansible.builtin.service:
+    name: clamav-daemon
+    state: started
+    enabled: true

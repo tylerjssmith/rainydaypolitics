@@ -1,0 +1,47 @@
+---
+# Install OpenSSH Server
+- name: Ensure OpenSSH Server installed
+  become: true
+  ansible.builtin.apt:
+    name: openssh-server
+    state: present
+    update_cache: true
+
+# Ensure sshd_config Directory Exists
+- name: Ensure sshd_config drop-in directory exists
+  become: true
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Deploy sshd_config Drop-in
+- name: Deploy sshd_config drop-in
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/99-hardening.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible: openssh.yml
+      Port 22
+      Protocol 2
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      ChallengeResponseAuthentication no
+      PubkeyAuthentication yes
+      UsePAM yes
+      X11Forwarding no
+      AllowTcpForwarding no
+      AllowAgentForwarding no
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+      LoginGraceTime 30s
+      MaxAuthTries 3
+      AllowUsers "{{ ansible_user }}"
+  notify: "validate and reload sshd"
+  

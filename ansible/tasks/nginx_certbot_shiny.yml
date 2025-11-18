@@ -1,0 +1,77 @@
+---
+# Install NGINX and Certbot
+- name: Install nginx and certbot
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+      - nginx
+      - certbot
+    state: present
+
+# Install R, Dependencies, and R Packages
+- name: Install R and dependencies via apt
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+      - r-base
+      - r-base-dev
+      - libcurl4-openssl-dev
+      - libssl-dev
+      - libxml2-dev
+      - libgdal-dev
+      - gdal-bin
+      - libgeos-dev
+      - libproj-dev
+      - libudunits2-dev
+      - gdebi-core
+    state: present
+
+- name: Install R packages
+  become: true
+  ansible.builtin.command:
+    cmd: >
+      Rscript -e "pkgs = c('tidyverse','shiny','shinydashboard','paws',
+      'jsonlite','DBI','pool','RPostgres','sf','leaflet',
+      'leaflet.extras','config');
+      to_install = setdiff(pkgs, rownames(installed.packages()));
+      if (length(to_install)) install.packages(to_install,
+        repos='https://cloud.r-project.org')"
+  changed_when: false
+
+# Install Shiny Server
+- name: Download Shiny Server
+  become: true
+  ansible.builtin.get_url:
+    url: "{{ shiny_server_download_url }}"
+    dest: /tmp/shiny-server-latest.deb
+    mode: '0644'
+
+- name: Install Shiny Server
+  become: true
+  ansible.builtin.apt:
+    deb: /tmp/shiny-server-latest.deb
+
+# Copy Configuration Files
+- name: Copy nginx.conf to managed node
+  ansible.builtin.copy:
+    src: servers/nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Copy rainydaypolitics.conf to sites-available
+  ansible.builtin.copy:
+    src: servers/rainydaypolitics.conf
+    dest: /etc/nginx/sites-available/rainydaypolitics.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Enable rainydaypolitics site (symlink)
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/rainydaypolitics.conf
+    dest: /etc/nginx/sites-enabled/rainydaypolitics.conf
+    state: link

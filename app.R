@@ -12,23 +12,38 @@ library(sf)
 library(leaflet)
 library(leaflet.extras)
 
-# Also requires config package, which is not loaded to avoid conflicts.
+# Also requires jsonlite package, which is not loaded.
 
 setwd("/srv/shiny-server/rainydaypolitics")
 ui_options = read_csv("data/ui_options.csv")
 
 ##### app_functions.R ##########################################################
+# Function: get_aws_secret()
+get_aws_secret = function(secret_name) {
+  command = sprintf(
+    paste(
+      "aws secretsmanager get-secret-value", 
+      "--secret-id '%s'", 
+      "--query SecretString", 
+      "--output text"
+    ),
+    secret_name
+  )
+  secret_json = system(command, intern = TRUE)
+  return(jsonlite::fromJSON(secret_json))
+}
+
 # Function: create_pool()
-create_pool = function(config_file) {
-  config = config::get(file = config_file)
+create_pool = function(env_var) {
+  creds = get_aws_secret(Sys.getenv(env_var))
   
   pool = dbPool(
     drv      = RPostgres::Postgres(),
-    host     = config$host,
-    port     = config$port,
-    dbname   = config$dbname,
-    user     = config$user,
-    password = config$password,
+    host     = creds$host,
+    port     = creds$port,
+    dbname   = creds$dbname,
+    user     = creds$username,
+    password = creds$password,
     
     minSize     = 3,
     maxSize     = 20, 
@@ -38,7 +53,7 @@ create_pool = function(config_file) {
   return(pool)
 }
 
-pool = create_pool(config_file = "config_app.yml")
+pool = create_pool("AWS_SECRET_NAME")
 
 onStop(function() {
   
@@ -250,7 +265,10 @@ body = dashboardBody(
 
 )
 
-ui = dashboardPage(header, sidebar, body)
+ui = dashboardPage(header, sidebar, body,
+  tags$head(tags$meta(name = "description", 
+    content = "Free interactive maps of Seattle and King County election results"))
+)
 
 ##### app_server.R #############################################################
 server = function(input, output, session) { 
@@ -308,7 +326,7 @@ server = function(input, output, session) {
   })
   
   # Validate Input
-  valid_inputs <- reactive({
+  valid_inputs = reactive({
     req(input$year,         nzchar(as.character(input$year)))
     req(input$election,     nzchar(input$election))
     req(input$jurisdiction, nzchar(input$jurisdiction))
