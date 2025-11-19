@@ -44,6 +44,7 @@ create_pool = function(env_var) {
     dbname   = creds$dbname,
     user     = creds$username,
     password = creds$password,
+    sslmode  = "require",
     
     minSize     = 3,
     maxSize     = 20, 
