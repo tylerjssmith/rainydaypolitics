@@ -25,6 +25,11 @@
       - libgeos-dev
       - libproj-dev
       - libudunits2-dev
+      - cmake
+      - libfontconfig1-dev
+      - libfreetype6-dev
+      - libharfbuzz-dev
+      - libfribidi-dev
       - gdebi-core
     state: present
 

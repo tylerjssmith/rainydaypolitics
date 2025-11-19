@@ -38,15 +38,6 @@
     mode: '0750'
 
 # Schedule Weekly Scan
-- name: Disable cron mail for ClamAV scan
-  become: true
-  ansible.builtin.cron:
-    name: MAILTO
-    user: root
-    cron_file: clamav_scan
-    env: true
-    job: ""
-
 - name: Schedule weekly ClamAV scan
   become: true
   ansible.builtin.cron:
@@ -56,8 +47,6 @@
     hour: "3"
     weekday: "0"
     cron_file: clamav_scan
-    env:
-      MAILTO: ""
     job: >
       /usr/bin/ionice -c3
       /usr/bin/nice -n19
