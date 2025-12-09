@@ -2,7 +2,11 @@
 
 Rainy Day Politics ([www.rainydaypolitics.com](www.rainydaypolitics.com)) is a no-code political analytics platform focused on Seattle and King County. Users can generate maps of precinct-level election results in recent local elections. 
 
-This repository includes the Shiny app in `app.R` and associated files in `data/` and `sql/`. It also includes the infrastructure-as-code files in `terraform/` and `ansible/` used to create the underlying AWS infrastructure. Files containing Terraform and Ansible variables have been withheld for security reasons.
+This repository includes the Shiny app in [`app.R`](app.R) and associated files in [`data/`](data/) and [`sql/`](sql/). It also includes infrastructure-as-code files in [`terraform/`](terraform/) and configuration management files in [`ansible/`](ansible/). Files containing Terraform and Ansible variables have been withheld for security reasons.
+
+<p align="center">
+<img src="docs/architecture.jpg" alt="AWS architecture for rainydaypolitics.com" width="550">
+</p>
 
 ## Getting Started
 
